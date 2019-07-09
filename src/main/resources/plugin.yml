@@ -1,0 +1,7 @@
+name: Places
+main: pro.kuqs.places.Places
+author: Kuqs
+version: 1.0.0
+commands:
+  place:
+  places:
