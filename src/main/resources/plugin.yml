@@ -2,6 +2,7 @@ name: Places
 main: pro.kuqs.places.Places
 author: Kuqs
 version: 1.0.0
+api-version: 1.13
 commands:
   place:
   places:

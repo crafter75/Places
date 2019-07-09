@@ -28,7 +28,7 @@ public class Places extends JavaPlugin {
             this.placeConfig = new PlaceConfig( this.getDataFolder() );
         } catch ( IOException e ) {
             e.printStackTrace();
-            System.out.println("[Places] Can't create config!");
+            System.out.println( "[Places] Can't create config!" );
             return;
         }
 
@@ -37,7 +37,7 @@ public class Places extends JavaPlugin {
 
         // Register command
         Objects.requireNonNull( this.getCommand( "place" ) ).setExecutor( new PlaceCommand( this ) );
-        Objects.requireNonNull( this.getCommand( "places" ) ).setExecutor( new PlacesCommand() );
+        Objects.requireNonNull( this.getCommand( "places" ) ).setExecutor( new PlacesCommand( this ) );
     }
 
     @Override
