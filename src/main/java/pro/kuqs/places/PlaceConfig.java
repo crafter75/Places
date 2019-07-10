@@ -28,6 +28,15 @@ public class PlaceConfig {
         if ( !this.placeFile.exists() ) {
             this.placeFile.createNewFile();
         }
+
+        if(this.placeCfg.get( "use_permissions" ) == null) {
+            this.placeCfg.set( "use_permissions", true );
+            this.placeCfg.save( this.placeFile );
+        }
+    }
+
+    public boolean usePermissions() {
+        return this.placeCfg.getBoolean( "use_permissions" );
     }
 
     public List<Place> getPlacesFromFile() {

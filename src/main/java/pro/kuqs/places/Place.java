@@ -1,6 +1,7 @@
 package pro.kuqs.places;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
@@ -9,6 +10,7 @@ import java.util.UUID;
 @Getter
 public class Place {
 
+    @Setter
     private String description;
 
     private Location location;

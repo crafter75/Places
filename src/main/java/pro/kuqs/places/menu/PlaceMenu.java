@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemStack;
 import pro.kuqs.places.Place;
+import pro.kuqs.places.Places;
 import pro.kuqs.places.util.CustomInventory;
 import pro.kuqs.places.util.ItemBuilder;
 
@@ -41,7 +42,8 @@ public class PlaceMenu extends CustomInventory {
     public enum Mode {
         NORMAL,
         DELETE,
-        TELEPORT;
+        TELEPORT,
+        RENAME;
     }
 
     public PlaceMenu( Player player, String title, List<Place> places ) {
@@ -57,6 +59,8 @@ public class PlaceMenu extends CustomInventory {
             this.mode = Mode.DELETE;
         } else if ( title.contains( "TPn" ) ) {
             this.mode = Mode.TELEPORT;
+        } else if ( title.contains( "umbenennen" ) ) {
+            this.mode = Mode.RENAME;
         }
 
         this.setItemsForCurrentPage();
@@ -91,19 +95,18 @@ public class PlaceMenu extends CustomInventory {
 
                         switch ( this.mode ) {
                             case DELETE:
-                                this.getPlayer().performCommand( "place del " + place.getDescription() );
+                                this.getPlayer().performCommand( "places del " + place.getDescription() );
                                 return;
                             case TELEPORT:
-                                this.getPlayer().performCommand( "place teleport " + place.getDescription() );
+                                this.getPlayer().performCommand( "places teleport " + place.getDescription() );
+                                return;
+                            case RENAME:
+                                this.getPlayer().performCommand( "places rename " + place.getDescription() );
                                 return;
                             default:
-                                Toolkit.getDefaultToolkit().getSystemClipboard().setContents( new StringSelection(
-                                        "X: " + place.getLocation().getBlockX() + " Y: " + place.getLocation().getBlockY() + " Z: " + place.getLocation().getBlockZ()
-                                ), null );
-                                this.getPlayer().sendMessage( "§aKoordinaten in die Zwischenablage gespeichert!" );
+                                this.getPlayer().performCommand( "places navigate " + place.getDescription() );
                         }
                     } );
-                    return;
             }
         }
     }

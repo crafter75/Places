@@ -54,6 +54,12 @@
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
+
+        <!-- Anvil GUI -->
+        <repository>
+            <id>wesjd-repo</id>
+            <url>https://nexus.wesjd.net/repository/thirdparty/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -68,9 +74,17 @@
         <!-- Spigot -->
         <dependency>
             <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
+            <artifactId>spigot</artifactId>
             <version>1.14.3-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
+            <scope>system</scope>
+            <systemPath>${basedir}/spigot/spigot-1.14.3-R0.1-SNAPSHOT.jar</systemPath>
+        </dependency>
+
+        <!-- Anvil GUI -->
+        <dependency>
+            <groupId>net.wesjd</groupId>
+            <artifactId>anvilgui</artifactId>
+            <version>1.2.2-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
