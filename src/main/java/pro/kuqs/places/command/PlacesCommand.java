@@ -14,18 +14,19 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import pro.kuqs.places.Place;
 import pro.kuqs.places.Places;
+import pro.kuqs.places.menu.DeathPointMenu;
 import pro.kuqs.places.menu.PlaceMenu;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class PlacesCommand implements CommandExecutor, TabCompleter {
 
     private Places places;
+
+    private List<String> completions = Arrays.asList( "set", "delete", "teleport", "rename", "navigate", "deathpoint" );
 
     public PlacesCommand( Places places ) {
         this.places = places;
@@ -100,6 +101,10 @@ public class PlacesCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage( "§cEs wurde kein Place mit dieser Beschreibung gefunden!" );
                     return true;
                 }
+                if ( this.places.getPlaceConfig().isTeleportDisabled() && !player.isOp() ) {
+                    player.sendMessage( "§cDiese Funktion wurde deaktiviert!" );
+                    return true;
+                }
                 if ( !this.places.hasPermissionsForPlace( player, optionalPlace.get() ) ) {
                     player.sendMessage( "§cKeine Rechte!" );
                     return true;
@@ -150,27 +155,42 @@ public class PlacesCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage( "§cEs wurde kein Place mit dieser Beschreibung gefunden!" );
                     return true;
                 }
-                this.places.removeNavigation( player );
                 Place place = optionalPlace.get();
 
                 if ( !player.getWorld().getName().equals( Objects.requireNonNull( place.getLocation().getWorld() ).getName() ) ) {
                     player.sendMessage( "§cDu bist nicht in der gleichen Welt wie der Place!" );
                     return true;
                 }
-                Scoreboard scoreboard = Objects.requireNonNull( Bukkit.getScoreboardManager() ).getNewScoreboard();
-                Objective objective = scoreboard.registerNewObjective( "navigate_place", "dummy", "§e" + place.getDescription() );
-                objective.setDisplaySlot( DisplaySlot.SIDEBAR );
-                objective.getScore( "§aX§7: §b" + place.getLocation().getBlockX() ).setScore( 5 );
-                objective.getScore( "§aY§7: §b" + place.getLocation().getBlockY() ).setScore( 4 );
-                objective.getScore( "§aZ§7: §b" + place.getLocation().getBlockZ() ).setScore( 3 );
-                objective.getScore( "§aEntfernung§7:" ).setScore( 2 );
-                Team team = scoreboard.registerNewTeam( "distance" );
-                team.addEntry( "§b" );
-                team.setSuffix( "" );
-                objective.getScore( "§b" ).setScore( 1 );
-                player.sendMessage( "§aDas Scoreboard zeigt dir den Weg zum Place!" );
-                this.places.getNavigate().put( player.getUniqueId(), place.getLocation() );
-                player.setScoreboard( scoreboard );
+                this.places.removeNavigation( player );
+                this.navigateToLocation( player, place.getDescription(), place.getLocation() );
+                return true;
+            } else if ( args[0].equalsIgnoreCase( "deathpoint" ) ) {
+                Optional<UUID> optionalUUID = this.places.getDeathPoints().keySet().stream().filter( uuid ->
+                        Objects.requireNonNull( Bukkit.getOfflinePlayer( uuid ).getName() ).equalsIgnoreCase( args[1] ) ).findFirst();
+                if ( !optionalUUID.isPresent() ) {
+                    player.sendMessage( "§cEs wurde kein DeathPoint von diesem Spieler gefunden!" );
+                    return true;
+                }
+                Location location = this.places.getDeathPoints().get( optionalUUID.get() );
+
+                if ( args.length >= 3 ) {
+                    if ( args[2].equalsIgnoreCase( "teleport" ) ) {
+                        if ( !player.getUniqueId().equals( optionalUUID.get() ) ) {
+                            player.sendMessage( "§cDu kannst dich nur zu eigenen Deathpoints teleportieren!" );
+                            return true;
+                        }
+                        player.teleport( location );
+                        player.sendMessage( "§aDu wurdest zu deinem vorherigen Deathpoint teleportiert." );
+                        return true;
+                    }
+                }
+
+                if ( !player.getWorld().getName().equals( Objects.requireNonNull( location.getWorld() ).getName() ) ) {
+                    player.sendMessage( "§cDu bist nicht in der gleichen Welt wie der Place!" );
+                    return true;
+                }
+                this.places.removeNavigation( player );
+                this.navigateToLocation( player, args[1] + " Death point", location );
                 return true;
             }
         } else if ( args.length == 1 ) {
@@ -183,12 +203,33 @@ public class PlacesCommand implements CommandExecutor, TabCompleter {
             } else if ( args[0].equalsIgnoreCase( "rename" ) ) {
                 player.openInventory( new PlaceMenu( player, "§cWähle ein Place zum umbenennen", this.places.getPlaces() ).getInventory() );
                 return true;
+            } else if ( args[0].equalsIgnoreCase( "deathpoint" ) ) {
+                player.openInventory( new DeathPointMenu( player, this.places.getDeathPoints() ).getInventory() );
+                return true;
             } else if ( args[0].equalsIgnoreCase( "help" ) ) {
                 this.sendHelp( player );
                 return true;
             } else if ( args[0].equalsIgnoreCase( "cancel" ) ) {
                 this.places.removeNavigation( player );
                 player.sendMessage( "§aNavigation wurde beendet." );
+                return true;
+            } else if ( args[0].equalsIgnoreCase( "disableteleport" ) ) {
+                try {
+                    this.places.getPlaceConfig().setValue( "disable_teleport", ( !this.places.getPlaceConfig().isTeleportDisabled() ) );
+                    player.sendMessage( "§aWert geupdatet!" );
+                } catch ( IOException e ) {
+                    e.printStackTrace();
+                    player.sendMessage( "§cFehler beim ändern des Wertes!" );
+                }
+                return true;
+            } else if ( args[0].equalsIgnoreCase( "usepermissions" ) ) {
+                try {
+                    this.places.getPlaceConfig().setValue( "use_permissions", ( !this.places.getPlaceConfig().usePermissions() ) );
+                    player.sendMessage( "§aWert geupdatet!" );
+                } catch ( IOException e ) {
+                    e.printStackTrace();
+                    player.sendMessage( "§cFehler beim ändern des Wertes!" );
+                }
                 return true;
             } else {
                 player.openInventory( new PlaceMenu( player, "§aPlaces von " + args[0], this.places.getPlaces().stream().filter( place ->
@@ -201,15 +242,16 @@ public class PlacesCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp( Player player ) {
-        player.sendMessage( "§aPlace Commands" );
-        player.sendMessage( "§e/place set <X> <Y> <Z> <Description>" );
-        player.sendMessage( "§e/place set <Description>" );
-        player.sendMessage( "§e/place delete [Description]" );
-        player.sendMessage( "§e/place teleport [Description]" );
-        player.sendMessage( "§e/place rename [Description]" );
-        player.sendMessage( "§e/place navigate [Description]" );
-        player.sendMessage( "§e/place" );
-        player.sendMessage( "§e/place <Name>" );
+        player.sendMessage( "§aPlaces Commands" );
+        player.sendMessage( "§e/places set <X> <Y> <Z> <Description>" );
+        player.sendMessage( "§e/places set <Description>" );
+        player.sendMessage( "§e/places delete [Description]" );
+        player.sendMessage( "§e/places teleport [Description]" );
+        player.sendMessage( "§e/places rename [Description]" );
+        player.sendMessage( "§e/places navigate [Description]" );
+        player.sendMessage( "§e/places deathpoint [Name]" );
+        player.sendMessage( "§e/places" );
+        player.sendMessage( "§e/places <Name>" );
     }
 
     private Optional<Place> getPlace( String desc ) {
@@ -222,9 +264,36 @@ public class PlacesCommand implements CommandExecutor, TabCompleter {
         return stringBuilder.toString().trim();
     }
 
+    private void navigateToLocation( Player player, String description, Location location ) {
+        Scoreboard scoreboard = Objects.requireNonNull( Bukkit.getScoreboardManager() ).getNewScoreboard();
+        Objective objective = scoreboard.registerNewObjective( "navigate_place", "dummy", "§e" + description );
+        objective.setDisplaySlot( DisplaySlot.SIDEBAR );
+        objective.getScore( "§a" ).setScore( 7 );
+        objective.getScore( "§aX§7: §b" + location.getBlockX() ).setScore( 6 );
+        objective.getScore( "§aY§7: §b" + location.getBlockY() ).setScore( 5 );
+        objective.getScore( "§aZ§7: §b" + location.getBlockZ() ).setScore( 4 );
+        objective.getScore( "§c" ).setScore( 3 );
+        objective.getScore( "§aEntfernung§7:" ).setScore( 2 );
+        Team team = scoreboard.registerNewTeam( "distance" );
+        team.addEntry( "§b" );
+        team.setSuffix( "" );
+        objective.getScore( "§b" ).setScore( 1 );
+        player.sendMessage( "§aDas Scoreboard zeigt dir den Weg !" );
+        this.places.getNavigate().put( player.getUniqueId(), location );
+        player.setScoreboard( scoreboard );
+    }
+
     @Override
-    public List<String> onTabComplete( CommandSender commandSender, Command command, String s, String[] strings ) {
-        // TODO
-        return null;
+    public List<String> onTabComplete( CommandSender commandSender, Command command, String s, String[] args ) {
+        if ( args.length == 0 ) {
+            return this.completions;
+        }
+        List<String> completions = new ArrayList<>();
+        for ( String comp : this.completions ) {
+            if ( comp.toLowerCase().startsWith( args[0].toLowerCase() ) ) {
+                completions.add( comp );
+            }
+        }
+        return completions;
     }
 }

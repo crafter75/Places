@@ -7,10 +7,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class PlaceConfig {
 
@@ -33,10 +30,24 @@ public class PlaceConfig {
             this.placeCfg.set( "use_permissions", true );
             this.placeCfg.save( this.placeFile );
         }
+
+        if(this.placeCfg.get( "disable_teleport" ) == null) {
+            this.placeCfg.set( "disable_teleport", false );
+            this.placeCfg.save( this.placeFile );
+        }
     }
 
     public boolean usePermissions() {
         return this.placeCfg.getBoolean( "use_permissions" );
+    }
+
+    public boolean isTeleportDisabled() {
+        return this.placeCfg.getBoolean( "disable_teleport" );
+    }
+
+    public void setValue(String key, Object value) throws IOException {
+        this.placeCfg.set( key, value );
+        this.placeCfg.save( this.placeFile );
     }
 
     public List<Place> getPlacesFromFile() {
@@ -59,6 +70,27 @@ public class PlaceConfig {
         }
         System.out.println( "[Places] Loaded " + places.size() + " places!" );
         return places;
+    }
+
+    public Map<UUID, Location> getDeathPoints() {
+        Map<UUID, Location> deathPoints = new HashMap<>();
+
+        if ( this.placeCfg.get( "deathpoints" ) != null ) {
+            for ( String uuid : Objects.requireNonNull( this.placeCfg.getConfigurationSection( "deathpoints" ) ).getKeys( false ) ) {
+                Location location = new Location(
+                        Bukkit.getWorld( Objects.requireNonNull( this.placeCfg.getString( "deathpoints." + uuid + ".world" ) ) ),
+                        this.placeCfg.getDouble( "deathpoints." + uuid + ".x" ),
+                        this.placeCfg.getDouble( "deathpoints." + uuid + ".y" ),
+                        this.placeCfg.getDouble( "deathpoints." + uuid + ".z" ),
+                        (float) this.placeCfg.getDouble( "deathpoints." + uuid + ".yaw" ),
+                        (float) this.placeCfg.getDouble( "deathpoints." + uuid + ".pitch" )
+                );
+
+                deathPoints.put( UUID.fromString( uuid ), location );
+            }
+        }
+        System.out.println( "[Places] Loaded " + deathPoints.size() + " death points!" );
+        return deathPoints;
     }
 
     public void savePlace( Place place ) throws IOException {
@@ -84,6 +116,16 @@ public class PlaceConfig {
         this.placeCfg.set( "places." + desc + ".yaw", null );
         this.placeCfg.set( "places." + desc + ".pitch", null );
         this.placeCfg.set( "places." + desc, null );
+
+        this.placeCfg.save( this.placeFile );
+    }
+
+    public void saveDeathPoint( UUID uuid, Location location ) throws IOException {
+        this.placeCfg.set( "deathpoints." + uuid.toString() + ".x", location.getX() );
+        this.placeCfg.set( "deathpoints." + uuid.toString() + ".y", location.getY() );
+        this.placeCfg.set( "deathpoints." + uuid.toString() + ".z", location.getZ() );
+        this.placeCfg.set( "deathpoints." + uuid.toString() + ".yaw", location.getYaw() );
+        this.placeCfg.set( "deathpoints." + uuid.toString() + ".pitch", location.getPitch() );
 
         this.placeCfg.save( this.placeFile );
     }

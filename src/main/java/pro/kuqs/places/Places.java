@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Team;
 import pro.kuqs.places.command.PlacesCommand;
+import pro.kuqs.places.listener.PlayerDeathListener;
 import pro.kuqs.places.listener.PlayerJoinListener;
 import pro.kuqs.places.listener.PlayerQuitListener;
 
@@ -23,6 +24,8 @@ public class Places extends JavaPlugin {
     private static Places instance;
 
     private List<Place> places;
+
+    private Map<UUID, Location> deathPoints = new HashMap<>();
 
     private PlaceConfig placeConfig;
 
@@ -44,12 +47,16 @@ public class Places extends JavaPlugin {
         // Load places
         this.places = this.placeConfig.getPlacesFromFile();
 
+        // Load death points
+        this.deathPoints = this.placeConfig.getDeathPoints();
+
         // Register command
         Objects.requireNonNull( this.getCommand( "places" ) ).setExecutor( new PlacesCommand( this ) );
 
         // Register listener
         this.getServer().getPluginManager().registerEvents( new PlayerQuitListener( this ), this );
         this.getServer().getPluginManager().registerEvents( new PlayerJoinListener( this ), this );
+        this.getServer().getPluginManager().registerEvents( new PlayerDeathListener( this ), this );
 
         // Start task
         Bukkit.getScheduler().runTaskTimer( this, () ->
